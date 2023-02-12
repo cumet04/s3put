@@ -2,10 +2,8 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io"
-	"log"
 	"net/url"
 	"os"
 	"os/signal"
@@ -17,16 +15,20 @@ import (
 )
 
 func main() {
-	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: cat file | s3put s3://your-bucket-name/path/to/dest")
-		flag.PrintDefaults()
-	}
-	flag.Parse()
+	usage := "Usage: cat file | s3put s3://your-bucket-name/path/to/dest"
 
-	u, err := url.ParseRequestURI(flag.Arg(0))
-	if err != nil {
-		log.Fatalln(err)
+	if len(os.Args) != 2 {
+		fmt.Fprintln(os.Stderr, usage)
+		os.Exit(1)
 	}
+
+	u, err := url.ParseRequestURI(os.Args[1])
+	if err != nil || u.Scheme != "s3" {
+		fmt.Fprintf(os.Stderr, "failed to parse destination: %v\n\n", err)
+		fmt.Fprintln(os.Stderr, usage)
+		os.Exit(1)
+	}
+
 	bucket := u.Host
 	key := strings.TrimPrefix(u.Path, "/")
 	body := io.MultiReader(os.Stdin)
